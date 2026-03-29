@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run campus_chaos",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+      "program": "${workspaceFolder}/main.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "purpose": ["debug-in-terminal"]
+    }
+  ]
+}

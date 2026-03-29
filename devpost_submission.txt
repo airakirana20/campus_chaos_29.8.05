@@ -1,0 +1,139 @@
+Campus Chaos - Submission Notes
+
+1. Description of the game
+
+Campus Chaos is a student-life survival game built in Python and Pygame. The player tries to survive a full 7-day academic week while managing energy, stress, money, and focus. Each day lasts a short amount of real time, and the player must move across campus, complete missions, make risky or safe choices, use powerups carefully, and respond to shifting academic pressure.
+
+The game is built around constant decision-making:
+- take a safe mission or a riskier high-reward mission
+- spend time recovering or keep pushing productivity
+- deal with random temptations and stress spikes
+- survive dream phases between days
+- decide whether to follow Mika, the in-world friend NPC, into short social interactions or stay on task
+
+The player wins by completing enough missions before the end of Day 7.
+
+
+2. Explanation of how AI is integrated
+
+AI is integrated directly into the game loop using Groq.
+
+The AI is not used as a generic chatbot. Instead, it acts as a structured game director.
+
+Current AI usage:
+- Day mission generation
+  - generates the two mission options shown to the player
+  - safe mission: lower pressure
+  - risk mission: higher pressure
+- Dynamic difficulty control
+  - adapts mission pressure based on the player state
+  - considers energy, stress, money, focus, day, time left, mission score, combo, current location, and route timing
+- Modifier and enemy planning
+  - generates the current daily student-life problem/modifier
+  - generates the enemy pressure plan for the day
+- Dream phase generation
+  - generates short dream missions between days
+  - dream missions create tension between one day and the next
+- Mika encounter generation
+  - generates short structured friend interactions for Mika
+  - returns only mood, one short line, and 2-3 structured choices
+  - all stat effects remain decided by the game engine, not the AI
+
+Important design choice:
+- the AI never directly edits save state or chooses arbitrary stat numbers
+- the AI generates structured content
+- the engine validates and applies the consequences safely
+
+Fallback behavior:
+- if Groq is unavailable, rate-limited, or missing configuration, the game falls back to built-in structured content so it remains playable
+- the HUD clearly shows whether AI is LIVE or OFFLINE
+
+
+3. Video of gameplay with commentary where necessary describing the game’s mechanics
+
+Recommended video structure:
+
+Intro:
+- show the homepage
+- explain the goal: survive 7 days and hit the mission target
+
+Core gameplay:
+- show overworld movement
+- show choosing between safe and risk missions
+- explain energy, stress, money, and focus
+- show a modifier and enemies affecting the run
+
+AI systems:
+- point at the AI indicator
+- explain that the AI generates missions, dream phases, and Mika interactions
+- mention that the game falls back safely if the live API is unavailable
+
+Dream phase:
+- show the transition from day to dream
+- explain success vs oversleep penalty
+
+Mika:
+- show Mika moving in the world
+- trigger a short Mika interaction
+- show an escort sequence
+
+Cafe interior:
+- show entering the cafe from the overworld
+- show walking around inside
+- show at least one interaction point
+
+Endgame:
+- show either a win or loss state
+
+Video file / link:
+- Add your gameplay video link here: [INSERT VIDEO LINK]
+
+
+4. Github link to the product
+
+Add your GitHub repository link here:
+- [INSERT GITHUB REPOSITORY LINK]
+
+
+5. Any additional info your team wishes to add
+
+Tech stack:
+- Python
+- Pygame
+- Groq API
+
+Design highlights:
+- AI is used as a dynamic director, not just flavor text
+- the game uses route-aware mission timing
+- the map changes across the week
+- dream phases create a day-night tension loop
+- Mika adds adaptive social pressure without turning into a full chatbot
+
+What makes the project interesting:
+- combines systems gameplay with structured AI generation
+- uses AI for adaptive pacing and mission design
+- keeps game consequences engine-controlled for stability
+
+Potential future improvements:
+- more interior locations
+- more daily map variants
+- richer Mika/friend interactions
+- more audio, art, and UI polish
+- more NPCs and social systems
+
+
+6. Devpost submission note
+
+Submit as a team via Devpost.
+
+Before final submission, make sure you have:
+- final game title
+- final team member list
+- gameplay video link
+- GitHub repository link
+- short cover image / screenshots if needed
+
+
+7. Short summary version for copy-paste
+
+Campus Chaos is a student-life survival game where the player must survive a 7-day academic week by balancing energy, stress, money, and focus while completing AI-directed missions. The AI is integrated as a structured game director using Groq: it generates safe and risky mission choices, dream missions, modifiers, enemy plans, and short adaptive interactions for Mika, the in-world friend NPC. The game keeps all outcomes engine-controlled and uses fallback content if the live API is unavailable. The result is a fast decision-heavy campus simulator where AI affects pacing, pressure, and mission structure throughout the run.

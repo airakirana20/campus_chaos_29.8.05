@@ -1,0 +1,9 @@
+{
+  "python.pythonPath": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+  "python.defaultInterpreterPath": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+  "python.terminal.activateEnvironment": true,
+  "code-runner.runInTerminal": true,
+  "code-runner.executorMap": {
+    "python": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3"
+  }
+}
