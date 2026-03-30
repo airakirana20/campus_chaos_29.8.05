@@ -9,6 +9,7 @@ class ZoneTemplate:
     fill_color: tuple[int, int, int]
     accent_color: tuple[int, int, int]
     effects: dict[str, float]
+    image_path: str | None = None
 
 
 ZONE_TEMPLATES = (
@@ -90,14 +91,14 @@ def format_effects(effects: dict[str, float], include_prefix: bool = False) -> s
         "money": "Money",
         "focus": "Focus",
     }
-    parts = []
+
+    parts: list[str] = []
     for stat_name, delta in effects.items():
         sign = "+" if delta > 0 else "-"
         parts.append(f"{stat_names.get(stat_name, stat_name.title())} {sign}{abs(delta):.0f}")
+
     effect_text = " | ".join(parts)
-    if include_prefix:
-        return "Visit: " + effect_text
-    return effect_text
+    return f"Visit: {effect_text}" if include_prefix else effect_text
 
 
 def get_total_effect_magnitude(effects: dict[str, float]) -> float:

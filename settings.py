@@ -7,6 +7,7 @@ SFX_VOLUME = 0.78
 
 BACKGROUND_COLOR = (24, 28, 36)
 PLAYER_BASE_SPEED = 320.0
+PLAYER_CHIBI_SCALE = 0.18
 ENEMY_LIMIT = 4
 HUD_LEFT_WIDTH = 230
 HUD_RIGHT_WIDTH = 292
@@ -14,7 +15,7 @@ HUD_TOP_MARGIN = 24
 HUD_BOTTOM_MARGIN = 24
 PLAYFIELD_MARGIN = 24
 
-PLAYER_SPRITE_PATH = "player/player.png"
+PLAYER_SPRITE_PATH = "assets/ui/sprites/chibi/chibi.png"
 FRIEND_SPRITE_PATH = "player/mika.png"
 ZONE_SPRITE_PATHS = {
     "Library": "tiles/library.png",

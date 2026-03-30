@@ -18,7 +18,7 @@ from game.player import Player
 from game.powerup_manager import PowerupManager
 from game.stats import Stats
 from game.temptation_manager import TemptationManager
-from game.ui_fonts import ui_font
+from game.ui_fonts import scaled_ui, ui_font
 from game.ui_primitives import draw_smooth_panel
 from game.zone_data import ZONE_TEMPLATES, format_effects
 from llm.llm_client import generate_dream_mission, generate_event, get_llm_status
@@ -719,10 +719,17 @@ def _draw_homepage(
     width = surface.get_width()
     height = surface.get_height()
 
-    for stripe_index in range(6):
-        stripe_rect = pygame.Rect(0, stripe_index * 120, width, 80)
-        stripe_color = (20 + stripe_index * 4, 26 + stripe_index * 5, 38 + stripe_index * 6)
-        pygame.draw.rect(surface, stripe_color, stripe_rect)
+    for y in range(height):
+        t = y / height
+        r = int(20 + 30 * t + 15 * math.sin(elapsed))
+        g = int(30 + 50 * t)
+        b = int(60 + 80 * t)
+        pygame.draw.line(surface, (r, g, b), (0, y), (width, y))
+    for i in range(4):
+        x = int(width * (0.2 + 0.2 * i) + math.sin(elapsed + i) * 30)
+        y = int(height * 0.3 + math.cos(elapsed + i) * 20)
+        pygame.draw.circle(surface, (80, 120, 180), (x, y), 100, width=1)
+
 
     hero_rect = pygame.Rect(48, 42, width - 96, 206)
     pygame.draw.rect(surface, (24, 30, 44), hero_rect, border_radius=28)
@@ -1182,6 +1189,227 @@ def _draw_world_prompt(surface: pygame.Surface, active_map, prompt_text: str, an
     draw_smooth_panel(surface, bubble_rect, (35, 40, 52), (228, 233, 240), border_radius=10)
     surface.blit(text_surface, text_surface.get_rect(center=bubble_rect.center))
 
+def _draw_status_chip(
+    surface: pygame.Surface,
+    rect: pygame.Rect,
+    label: str,
+    value: str,
+    accent: tuple[int, int, int],
+    tick: float,
+    pulse: bool = False,
+    icon_type: str = "default",
+    dramatic: bool = False,
+) -> None:
+    pulse_strength = 0.5 + 0.5 * math.sin(tick * (6.8 if dramatic else 4.2))
+    glow_alpha = 18
+    if pulse:
+        glow_alpha = int(18 + (28 if dramatic else 14) * pulse_strength)
+
+    bob = int(round(math.sin(tick * (7.5 if dramatic else 4.0)) * (2.5 if dramatic else 1.2)))
+    border_width = 3 if dramatic else 2
+
+    glow_surface = pygame.Surface((rect.width + 20, rect.height + 20), pygame.SRCALPHA)
+    pygame.draw.rect(
+        glow_surface,
+        (*accent, glow_alpha),
+        pygame.Rect(10, 10, rect.width, rect.height),
+        border_radius=16,
+    )
+    if dramatic:
+        pygame.draw.rect(
+            glow_surface,
+            (255, 255, 255, int(10 + 12 * pulse_strength)),
+            pygame.Rect(13, 13, rect.width - 6, rect.height - 6),
+            width=1,
+            border_radius=14,
+        )
+    surface.blit(glow_surface, (rect.x - 10, rect.y - 10 + bob))
+
+    card_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+    pygame.draw.rect(card_surface, (12, 18, 34, 228), card_surface.get_rect(), border_radius=14)
+    pygame.draw.rect(card_surface, accent, card_surface.get_rect(), width=border_width, border_radius=14)
+    pygame.draw.rect(
+        card_surface,
+        (255, 255, 255, 16 if dramatic else 14),
+        pygame.Rect(0, 0, rect.width, 24),
+        border_radius=14,
+    )
+
+    if dramatic:
+        sweep_x = int((tick * 120) % (rect.width + 80)) - 40
+        sweep_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(
+            sweep_surface,
+            (255, 255, 255, 20),
+            pygame.Rect(sweep_x, 0, 30, rect.height),
+            border_radius=10,
+        )
+        pygame.draw.rect(
+            sweep_surface,
+            (255, 255, 255, 10),
+            pygame.Rect(sweep_x - 18, 0, 18, rect.height),
+            border_radius=10,
+        )
+        card_surface.blit(sweep_surface, (0, 0))
+
+    label_font = ui_font(13, bold=True)
+    value_font = ui_font(20 if not dramatic else 22, bold=True)
+    meta_font = ui_font(12, bold=True)
+
+    icon_rect = pygame.Rect(12, 14, 34, 34)
+    _draw_status_chip_icon(card_surface, icon_rect, icon_type, accent, tick, dramatic=dramatic)
+
+    label_surface = label_font.render(label.upper(), True, (176, 188, 216))
+    value_surface = value_font.render(value, True, (243, 247, 255))
+
+    card_surface.blit(label_surface, (56, 8))
+    card_surface.blit(value_surface, (56, 31 if not dramatic else 29))
+
+    if dramatic:
+        dramatic_text = meta_font.render("CRITICAL DREAM PHASE", True, (226, 214, 255))
+        card_surface.blit(
+            dramatic_text,
+            (rect.width - dramatic_text.get_width() - 12, 9),
+        )
+
+        ember_count = 3
+        for i in range(ember_count):
+            ember_x = rect.width - 26 - i * 11
+            ember_y = 38 + int(math.sin(tick * 5.0 + i) * 3)
+            pygame.draw.circle(card_surface, accent, (ember_x, ember_y), 2)
+            pygame.draw.circle(card_surface, (255, 255, 255), (ember_x, ember_y - 1), 1)
+
+    surface.blit(card_surface, (rect.x, rect.y + bob))
+
+
+def _draw_status_chip_icon(
+        surface: pygame.Surface,    
+        rect: pygame.Rect,
+        icon_type: str,
+        accent: tuple[int, int, int],
+        tick: float,
+        dramatic: bool = False,
+    ) -> None:
+        pulse = 0.5 + 0.5 * math.sin(tick * (7.0 if dramatic else 4.8))
+        glow_alpha = int(22 + 20 * pulse)
+
+        glow_surface = pygame.Surface((rect.width + 10, rect.height + 10), pygame.SRCALPHA)
+        pygame.draw.rect(
+            glow_surface,
+            (*accent, glow_alpha),
+            pygame.Rect(5, 5, rect.width, rect.height),
+            border_radius=10,
+        )
+        surface.blit(glow_surface, (rect.x - 5, rect.y - 5))
+
+        pygame.draw.rect(surface, (20, 28, 52), rect, border_radius=10)
+        pygame.draw.rect(surface, (64, 82, 138), rect, width=1, border_radius=10)
+
+        px = max(2, rect.width // 10)
+        ox = rect.x + (rect.width - px * 8) // 2
+        oy = rect.y + (rect.height - px * 8) // 2 + int(round(math.sin(tick * 4.0) * 1.2))
+
+        pattern = _get_status_chip_icon_pattern(icon_type, phase=int((tick * 6) % 2), dramatic=dramatic)
+
+        for row_index, row in enumerate(pattern):
+            for col_index, cell in enumerate(row):
+                if not cell:
+                    continue
+
+                color = accent
+                if cell == 2:
+                    color = (255, 255, 255)
+                elif cell == 3:
+                    color = (255, 220, 110)
+                elif cell == 4:
+                    color = (205, 190, 255)
+
+                pygame.draw.rect(
+                    surface,
+                    color,
+                    pygame.Rect(ox + col_index * px, oy + row_index * px, px, px),
+                    border_radius=max(1, px // 2),
+                )
+
+
+def _get_status_chip_icon_pattern(icon_type: str, phase: int, dramatic: bool = False) -> list[list[int]]:
+        if icon_type == "combo":
+            sparkle = 2 if phase == 0 else 3
+            return [
+                [0, 0, sparkle, 0, 0, sparkle, 0, 0],
+                [0, 3, 3, 0, 0, 3, 3, 0],
+                [3, 3, 3, 3, 3, 3, 3, 3],
+                [0, 3, 3, 3, 3, 3, 3, 0],
+                [0, 0, 3, 3, 3, 3, 0, 0],
+                [0, 3, 0, 3, 3, 0, 3, 0],
+                [3, 0, 0, 3, 3, 0, 0, 3],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+
+        if icon_type == "day":
+            sun = 2 if phase == 0 else 3
+            return [
+                [0, 0, 0, sun, sun, 0, 0, 0],
+                [0, 0, 3, 3, 3, 3, 0, 0],
+                [0, 3, 3, 3, 3, 3, 3, 0],
+                [0, 3, 3, 2, 2, 3, 3, 0],
+                [0, 3, 3, 2, 2, 3, 3, 0],
+                [0, 3, 3, 3, 3, 3, 3, 0],
+                [0, 0, 3, 3, 3, 3, 0, 0],
+                [0, 0, 0, 3, 3, 0, 0, 0],
+            ]
+
+        if icon_type == "missions":
+            pin = 2 if phase == 0 else 1
+            return [
+                [0, 0, 0, 2, 2, 0, 0, 0],
+                [0, 0, 2, pin, pin, 2, 0, 0],
+                [0, 2, pin, pin, pin, pin, 2, 0],
+                [0, 2, pin, 2, 2, pin, 2, 0],
+                [0, 2, pin, pin, pin, pin, 2, 0],
+                [0, 0, 2, pin, pin, 2, 0, 0],
+                [0, 0, 0, 2, 2, 0, 0, 0],
+                [0, 0, 0, 0, 2, 0, 0, 0],
+            ]
+
+        if icon_type == "timer":
+            hand = 2 if phase == 0 else 1
+            return [
+                [0, 0, 1, 1, 1, 1, 0, 0],
+                [0, 1, 1, 2, 2, 1, 1, 0],
+                [1, 1, 2, 2, 2, 2, 1, 1],
+                [1, 2, 2, hand, 2, 2, 2, 1],
+                [1, 2, 2, 2, 2, hand, 2, 1],
+                [1, 1, 2, 2, 2, 2, 1, 1],
+                [0, 1, 1, 2, 2, 1, 1, 0],
+                [0, 0, 1, 1, 1, 1, 0, 0],
+            ]
+
+        if icon_type == "dream_timer":
+            core = 4 if phase == 0 else 2
+            halo = 2 if dramatic else 4
+            return [
+                [0, 0, halo, 4, 4, halo, 0, 0],
+                [0, 4, 4, core, core, 4, 4, 0],
+                [4, 4, core, core, core, core, 4, 4],
+                [4, core, core, 2, 2, core, core, 4],
+                [4, core, core, 2, 2, core, core, 4],
+                [4, 4, core, core, core, core, 4, 4],
+                [0, 4, 4, core, core, 4, 4, 0],
+                [0, 0, halo, 4, 4, halo, 0, 0],
+            ]
+
+        return [
+            [0, 0, 1, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 0, 1, 1, 0, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1, 0, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0],
+        ]
+
 
 def _draw_play_session(
     surface: pygame.Surface,
@@ -1215,58 +1443,101 @@ def _draw_play_session(
     elif session.phase == "dream":
         _draw_dream_panel(surface, session, overlay_small_font)
 
-    compact_status_font = ui_font(22, bold=True)
     llm_font = ui_font(14, bold=True)
     llm_detail_font = ui_font(13)
-    status_start_y = 286
-    status_row_gap = 32
+    compact_status_font = ui_font(20, bold=True)
+
+    tick = pygame.time.get_ticks() / 1000.0
+
+    status_x = 18
+    status_y = 286
+    status_margin_top = scaled_ui(12)
+
+    chip_w = scaled_ui(300)
+    chip_h = scaled_ui(66)
+    chip_gap = scaled_ui(10)
+
+    combo_y = status_y + status_margin_top
+    timer_accent = (255, 219, 125) if session.day_time_remaining > 15 else (247, 126, 142)
 
     if session.phase == "day":
-        combo_surface = overlay_small_font.render(
-            f"Combo x{_current_combo_multiplier(session)}",
-            True,
-            (255, 216, 116) if session.combo_streak > 0 else (202, 209, 220),
-        )
-        surface.blit(combo_surface, (18, status_start_y))
+        combo_value = f"x{_current_combo_multiplier(session)}"
+        combo_accent = (255, 210, 102) if session.combo_streak > 0 else (126, 140, 170)
 
-        day_surface = compact_status_font.render(
-            f"Day {session.current_day}/{session.total_days}",
-            True,
-            (234, 238, 244),
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y, chip_w, chip_h),
+            "Combo",
+            combo_value,
+            combo_accent,
+            tick,
+            pulse=session.combo_streak > 0,
+            icon_type="combo",
         )
-        mission_score_surface = compact_status_font.render(
-            f"Missions {session.mission_score}/{session.target_score}",
-            True,
-            (234, 238, 244),
+
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y + (chip_h + chip_gap) * 1, chip_w, chip_h),
+            "Day",
+            f"{session.current_day}/{session.total_days}",
+            (110, 186, 255),
+            tick,
+            icon_type="day",
         )
-        timer_color = (255, 219, 125) if session.day_time_remaining > 15 else (247, 126, 142)
-        timer_surface = compact_status_font.render(
-            f"Day timer: {session.day_time_remaining:0.1f}s",
-            True,
-            timer_color,
+
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y + (chip_h + chip_gap) * 2, chip_w, chip_h),
+            "Missions",
+            f"{session.mission_score}/{session.target_score}",
+            (141, 233, 175),
+            tick,
+            icon_type="missions",
         )
-        surface.blit(day_surface, (18, status_start_y + status_row_gap))
-        surface.blit(mission_score_surface, (18, status_start_y + status_row_gap * 2))
-        surface.blit(timer_surface, (18, status_start_y + status_row_gap * 3))
+
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y + (chip_h + chip_gap) * 3, chip_w, chip_h),
+            "Day Timer",
+            f"{session.day_time_remaining:0.1f}s",
+            timer_accent,
+            tick,
+            pulse=session.day_time_remaining <= 15,
+            icon_type="timer",
+            dramatic=session.day_time_remaining <= 10,
+        )
     else:
-        day_surface = compact_status_font.render(
-            f"Day {session.current_day}/{session.total_days}",
-            True,
-            (234, 238, 244),
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y, chip_w, chip_h),
+            "Day",
+            f"{session.current_day}/{session.total_days}",
+            (110, 186, 255),
+            tick,
+            icon_type="day",
         )
-        mission_score_surface = compact_status_font.render(
-            f"Missions {session.mission_score}/{session.target_score}",
-            True,
-            (234, 238, 244),
+
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y + (chip_h + chip_gap) * 1, chip_w, chip_h),
+            "Missions",
+            f"{session.mission_score}/{session.target_score}",
+            (141, 233, 175),
+            tick,
+            icon_type="missions",
         )
-        timer_surface = compact_status_font.render(
-            f"Dream fades in {session.dream_mission.phase_remaining:0.1f}s",
-            True,
+
+        _draw_status_chip(
+            surface,
+            pygame.Rect(status_x, combo_y + (chip_h + chip_gap) * 2, chip_w, chip_h),
+            "Dream Timer",
+            f"{session.dream_mission.phase_remaining:0.1f}s",
             (198, 191, 255),
+            tick,
+            pulse=True,
+            icon_type="dream_timer",
+            dramatic=True,
         )
-        surface.blit(day_surface, (18, status_start_y))
-        surface.blit(mission_score_surface, (18, status_start_y + status_row_gap))
-        surface.blit(timer_surface, (18, status_start_y + status_row_gap * 2))
 
     llm_status = get_llm_status()
     llm_live = llm_status.get("mode") == "live"
